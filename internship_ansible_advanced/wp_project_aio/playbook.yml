@@ -1,0 +1,127 @@
+- name: WP Ansible playbook on server1
+  hosts: server1
+  become: yes
+  vars:
+  - project_dir: /home/{{ user }}/{{ server_name }}
+  - user: noizz
+  - server_name: wp.local
+  - db_name: wp
+  - db_user: wp
+  - db_pass: wp
+  - db_host: "{{ groups['server1'][0] }}"
+  - root_dir: "{{ project_dir }}"
+  - nginx_port: 80
+  roles:
+    - nginx
+    - mysql
+    - wordpress
+- name: WP Ansible playbook on server2
+  hosts: server2
+  become: yes
+  vars:
+  - project_dir: /home/{{ user }}/{{ server_name }}
+  - user: noizz
+  - server_name: wp.local
+  - db_name: wp
+  - db_user: wp
+  - db_pass: wp
+  - db_host: "{{ groups['server2'][0] }}"
+  - root_dir: /var/www/html/
+  - nginx_port: 80
+  roles:
+    - prepare
+    - provision
+- name: WP Ansible playbook on server3
+  hosts: server3
+  become: yes
+  vars:
+    db_user: wp
+    db_pass: wp
+    db_name: wp
+    db_host: "{{ groups['server3'][0] }}"
+    server_name: wp.local
+  tasks:
+    - name: creating working directory
+      file:
+        path: /home/noizz/wp_ansible
+        state: directory
+        mode: '0755'
+    - name: copying content from host to remote
+      copy:
+        src: ./intro/
+        dest: /home/noizz/wp_ansible/
+        mode: '0755'
+    - name: prepare docker repos
+      apt:
+        update_cache: yes
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/debian/gpg
+        state: present
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/debian bullseye stable
+        state: present
+    - name: Install Docker Engine
+      apt:
+        update_cache: yes
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io 
+          - docker-compose-plugin
+        state: present
+    - name: add user to docker group
+      user: 
+        name: noizz
+        groups: docker, noizz
+    - name: install docker-compose
+      command: curl -SL https://github.com/docker/compose/releases/download/v2.11.1/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+    - file:
+        path: /usr/local/bin/docker-compose
+        mode: '0777'
+        owner: noizz
+    - name: install python3-pip
+      apt:
+        update_cache: yes
+        name: python3-pip
+        state: present
+    - name: install docker through pip
+      pip:
+        name: docker
+        state: present
+    - name: build image from Dockerfile
+      docker_image:
+        name: wordpress:v1.0
+        build:
+          path: /home/noizz/wp_ansible
+          #source: build
+        state: present
+    - name: fetch wp content
+      apt:
+        update_cache: yes
+        name: unzip
+        state: present
+    - unarchive:
+        src: https://wordpress.org/latest.zip
+        dest: /home/noizz/wp_ansible
+        remote_src: yes
+        owner: noizz
+        group: noizz
+        mode: '0777'
+    - name: setting up wp-config.php
+      template:
+        src: ./intro/wp-config.php.j2
+        dest: /home/noizz/wp_ansible/wordpress/wp-config.php
+    - name: run docker-compose
+      command: docker-compose -f /home/noizz/wp_ansible/docker-compose.yml up -d
+
+
+    
+

@@ -1,0 +1,33 @@
+- name: fetch wp content
+  apt:
+    update_cache: yes
+    name: unzip
+    state: present
+- name: checking project folder
+  file:
+    path: "{{ project_dir }}"
+    state: directory
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: '0777'
+    recurse: yes
+- name: unpacking wp archive 
+  unarchive:
+    src: https://wordpress.org/latest.zip
+    dest: "{{ project_dir }}"
+    remote_src: yes
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: '0777'
+- name: setting up wp-config.php
+  template:
+    src: wp-config.php.j2
+    dest: "{{ project_dir }}/wordpress/wp-config.php"
+- name: restart all services
+  service:
+    name: "{{ item }}"
+    state: restarted
+  with_items:
+      - nginx
+      - mysql
+      - php7.4-fpm

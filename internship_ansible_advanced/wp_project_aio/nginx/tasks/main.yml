@@ -1,0 +1,41 @@
+- name: installing nginx and php dependencies
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+      - nginx
+      - php 
+      - php-mysql 
+      - php-fpm 
+      - php-curl 
+      - php-gd 
+      - php-intl 
+      - php-mbstring 
+      - php-soap 
+      - php-xml 
+      - php-xmlrpc 
+      - php-zip 
+      - locate 
+      - nano
+- name: configuring nginx
+  template:
+    src: default.conf.j2
+    dest: /etc/nginx/conf.d/default.conf
+  notify: restart nginx
+- name: copying nginx.conf
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+- name: configuring php-fpm
+  copy:
+    src: php-fpm.conf
+    dest: /etc/php/7.4/fpm/php-fpm.conf
+- name: configuring fpm-pool
+  copy:
+    src: www.conf
+    dest: /etc/php/7.4/fpm/pool.d/www.conf
+- name: Ensure nginx is running
+  service:
+    name: nginx
+    state: started

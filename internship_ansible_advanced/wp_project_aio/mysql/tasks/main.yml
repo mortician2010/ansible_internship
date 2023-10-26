@@ -1,0 +1,33 @@
+---
+- name: Installing Mysql Server
+  apt:
+    name: "{{ item }}"
+  with_items:
+      - mariadb-server
+      - mariadb-client 
+      - python3-mysqldb
+      - default-libmysqlclient-dev
+- name: start and enable mysql service
+  service:
+    name: mysql
+    state: started
+    enabled: yes
+- name: creating mysql user 
+  mysql_user:
+    name: "{{db_user}}"
+    password: "{{db_pass}}"
+    priv: '*.*:ALL'
+    host: '%'
+    state: present
+- name: creating database
+  mysql_db:
+    name: "{{db_name}}"
+    state: present
+- name: Enable remote login to mysql
+  lineinfile:
+    path: /etc/mysql/mariadb.conf.d/50-server.cnf
+    regexp: '^bind-address'
+    line: 'bind-address = 0.0.0.0'
+    backup: yes
+  notify:
+    - Restart mysql

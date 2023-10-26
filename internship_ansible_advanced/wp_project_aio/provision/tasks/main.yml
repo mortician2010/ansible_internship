@@ -1,0 +1,33 @@
+- name: install docker through pip
+  pip:
+    name: docker
+    state: present
+- name: build image from Dockerfile
+  docker_image:
+    name: wordpress:v1.0
+    build:
+      path: "{{ project_dir }}"
+    state: present
+- name: fetch wp content
+  apt:
+    update_cache: yes
+    name: unzip
+    state: present
+- name: unpacking wp archive 
+  unarchive:
+    src: https://wordpress.org/latest.zip
+    dest: "{{ project_dir }}"
+    remote_src: yes
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: '0777'
+- name: setting up wp-config.php
+  template:
+    src: wp-config.php.j2
+    dest: "{{ project_dir }}/wordpress/wp-config.php"
+- name: setting up vhost config
+  template: 
+    src: default.conf.j2
+    dest: "{{ project_dir }}"
+- name: run docker-compose
+  command: docker-compose -f {{ project_dir }}/docker-compose.yml up -d

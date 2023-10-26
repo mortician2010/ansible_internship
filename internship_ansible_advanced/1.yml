@@ -1,0 +1,13 @@
+---
+-
+  hosts: all
+  become: yes
+  tasks:
+  - name: Installing multiple packages
+    apt:
+      update_cache: yes
+      name:
+      - nano
+      - git
+      - mc
+      - locate

@@ -1,0 +1,8 @@
+---
+-
+  hosts: all
+  tasks:
+  - include_vars: vars.yml
+  - name: Ansible Playbook variable definition example
+    debug:
+      msg: "{{ title }}"
